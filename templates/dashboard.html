@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ID Card Detection Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    <h1 class="text-3xl font-bold text-center mb-8 text-blue-800">ID Card Detection Dashboard</h1>
+    
+    <div class="mb-6 flex justify-between">
+      <a href="/" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-200">
+        Back to Detection
+      </a>
+      <a href="/search" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition duration-200">
+        Search Records
+      </a>
+      <a href="/export" class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition duration-200">
+        Export Data
+      </a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="bg-white p-6 rounded-lg shadow-md text-center">
+        <h3 class="text-lg font-semibold mb-2 text-gray-700">Total Detections</h3>
+        <p class="text-4xl font-bold text-blue-600">{{ total_detections }}</p>
+      </div>
+      
+      <div class="bg-white p-6 rounded-lg shadow-md text-center">
+        <h3 class="text-lg font-semibold mb-2 text-gray-700">Today's Detections</h3>
+        <p class="text-4xl font-bold text-green-600">{{ today_detections }}</p>
+      </div>
+      
+      <div class="bg-white p-6 rounded-lg shadow-md text-center">
+        <h3 class="text-lg font-semibold mb-2 text-gray-700">ID Cards Detected</h3>
+        <p class="text-4xl font-bold text-purple-600">{{ id_detections }}</p>
+      </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+      <h3 class="text-xl font-semibold mb-4 text-gray-800">Detection Trends</h3>
+      <canvas id="trendChart" width="400" height="200"></canvas>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow-md">
+      <h3 class="text-xl font-semibold mb-4 text-gray-800">Recent Detections</h3>
+      <div class="overflow-x-auto">
+        <table class="min-w-full table-auto">
+          <thead>
+            <tr class="bg-gray-100">
+              <th class="px-4 py-2 text-left">Timestamp</th>
+              <th class="px-4 py-2 text-left">ID Detected</th>
+              <th class="px-4 py-2 text-left">Confidence</th>
+              <th class="px-4 py-2 text-left">Extracted Text</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for detection in recent_detections %}
+            <tr class="border-b">
+              <td class="px-4 py-2">{{ detection.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td class="px-4 py-2">
+                <span class="px-2 py-1 rounded-full text-xs font-semibold {% if detection.id_detected %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                  {{ 'Yes' if detection.id_detected else 'No' }}
+                </span>
+              </td>
+              <td class="px-4 py-2">
+                {% if detection.detection_confidence %}
+                {{ (detection.detection_confidence * 100) | round(1) }}%
+                {% else %}N/A{% endif %}
+              </td>
+              <td class="px-4 py-2">{{ detection.extracted_text | truncate(50) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Chart for detection trends
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    const trendChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [{% for day in daily_counts %}'{{ day.date }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+          label: 'Detections per Day',
+          data: [{% for day in daily_counts %}{{ day.count }}{% if not loop.last %}, {% endif %}{% endfor %}],
+          borderColor: 'rgb(75, 192, 192)',
+          tension: 0.1,
+          fill: true,
+          backgroundColor: 'rgba(75, 192, 192, 0.1)'
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

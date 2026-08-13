@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ID Card Detection</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    <h1 class="text-3xl font-bold text-center mb-8 text-blue-800">ID Card Detection System</h1>
+
+    <div class="mb-6 flex justify-between">
+      <a href="/dashboard" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition duration-200">
+        View Dashboard
+      </a>
+      <a href="/search" class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition duration-200">
+        Search Records
+      </a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="post" enctype="multipart/form-data" class="mb-8 bg-white p-6 rounded-lg shadow-md">
+      <div class="flex flex-col space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Upload Images (Multiple allowed)</label>
+          <input type="file" name="file" accept="image/*" multiple required
+                 class="block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-md file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100">
+        </div>
+        <button type="submit"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-200">
+          Process Images
+        </button>
+      </div>
+    </form>
+<a href="/webcam" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-200 mr-2">
+  Live Webcam
+</a>
+    {% if multiple_results %}
+    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+      <h3 class="text-xl font-semibold mb-4 text-gray-800">Batch Processing Results</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for result in multiple_results %}
+        <div class="border rounded-lg p-4 {% if result.id_detected %}bg-green-50 border-green-200{% else %}bg-red-50 border-red-200{% endif %}">
+          <div class="flex justify-between items-center mb-3">
+            <span class="font-semibold {% if result.id_detected %}text-green-800{% else %}text-red-800{% endif %}">
+              Image {{ loop.index }}: {{ 'ID Detected' if result.id_detected else 'No ID Detected' }}
+            </span>
+            <span class="text-sm text-gray-600">{{ (result.detection_confidence * 100) | round(1) if result.detection_confidence else 0 }}%</span>
+          </div>
+          <img src="{{ result.original_image }}" alt="Processed Image" class="w-full h-auto rounded border border-gray-200 mb-2">
+          {% if result.extracted_text %}
+          <details class="mt-2">
+            <summary class="cursor-pointer text-sm font-medium text-blue-600">View Extracted Text</summary>
+            <pre class="whitespace-pre-wrap text-xs mt-2 text-gray-700">{{ result.extracted_text }}</pre>
+          </details>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if original_image and not multiple_results %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div class="bg-white p-4 rounded-lg shadow-md">
+        <h3 class="text-lg font-semibold mb-3 text-center text-gray-800">Original Image</h3>
+        <img src="{{ original_image }}" alt="Original Image" class="w-full h-auto rounded border border-gray-200">
+      </div>
+      <div class="bg-white p-4 rounded-lg shadow-md">
+        <h3 class="text-lg font-semibold mb-3 text-center text-gray-800">Processed Image</h3>
+        <img src="{{ result_image }}" alt="Processed Image" class="w-full h-auto rounded border border-gray-200">
+      </div>
+    </div>
+
+    {% if cropped_images and cropped_images|length > 0 %}
+    <div class="bg-white p-4 rounded-lg shadow-md mb-6">
+      <h3 class="text-lg font-semibold mb-3 text-gray-800">Cropped ID Cards</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {% for cropped_image in cropped_images %}
+        <div class="border rounded-lg overflow-hidden">
+          <img src="{{ cropped_image }}" alt="Cropped ID {{ loop.index }}" class="w-full h-auto">
+          <div class="p-2 text-center text-xs text-gray-600">ID Card {{ loop.index }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if extracted_text %}
+    <div class="bg-white p-4 rounded-lg shadow-md mb-8">
+      <h3 class="text-lg font-semibold mb-3 text-gray-800">Extracted ID Card Text</h3>
+      <pre class="whitespace-pre-wrap text-gray-700">{{ extracted_text }}</pre>
+    </div>
+    {% endif %}
+
+    <div class="p-5 rounded-lg mb-8 {% if id_detected %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+      {% if id_detected %}
+      <div class="flex items-center">
+        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M5 13l4 4L19 7"></path>
+        </svg>
+        <h3 class="text-xl font-semibold">ID Card Detected</h3>
+      </div>
+      <p class="mt-2">The system has detected an ID card being worn/hanged properly.</p>
+      <p class="mt-1 text-sm text-gray-600">Confidence: {{ (detection_confidence * 100) | round(1) }}%</p>
+      {% else %}
+      <div class="flex items-center">
+        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        <h3 class="text-xl font-semibold">ID Card Not Detected</h3>
+      </div>
+      <p class="mt-2">No ID card was detected in the image.</p>
+
+      <div class="mt-4 bg-white p-4 rounded-lg">
+        <h4 class="text-lg font-medium mb-3 text-gray-800">Please provide reason for not wearing ID card:</h4>
+        <form method="post" action="/submit_reason" class="space-y-4">
+          <input type="hidden" name="record_id" value="{{ record_id }}">
+          <select name="reason" required
+                  class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Select a reason</option>
+            <option value="forgot">I forgot to wear it</option>
+            <option value="lost">I lost my ID card</option>
+            <option value="damaged">My ID card is damaged</option>
+            <option value="other">Other reason</option>
+          </select>
+          <button type="submit"
+                  class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-200">
+            Submit Reason
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if total_detections is defined %}
+    <div class="bg-white p-6 rounded-lg shadow-md mt-8">
+      <h3 class="text-xl font-semibold mb-4 text-gray-800">System Statistics</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="text-center">
+          <p class="text-2xl font-bold text-blue-600">{{ total_detections }}</p>
+          <p class="text-gray-600">Total Detections</p>
+        </div>
+        <div class="text-center">
+          <p class="text-2xl font-bold text-green-600">{{ today_detections }}</p>
+          <p class="text-gray-600">Today's Detections</p>
+        </div>
+        <div class="text-center">
+          <p class="text-2xl font-bold text-purple-600">{{ recent_detections|length }}</p>
+          <p class="text-gray-600">Recent Detections</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</body>
+</html>
